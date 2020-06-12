@@ -43,13 +43,15 @@ namespace DanskeWebApp.Controllers
         }
 
         //PUT: api/AlyzedArrays/5
-        [HttpPut]
-        public async Task<IActionResult> putAnalyzedArray(int id, AnalyzedArrays analyzedArray)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutAnalyzedArray(int id, AnalyzedArrays analyzedArray)
         {
             if (id != analyzedArray.Id)
             {
-                return BadRequest();
+                return BadRequest("Id does not exist.");
             }
+
+            analyzedArray = ProcessArray(analyzedArray);
 
             _context.Entry(analyzedArray).State = EntityState.Modified;
 
@@ -78,6 +80,30 @@ namespace DanskeWebApp.Controllers
         [HttpPost]
         public async Task<ActionResult<AnalyzedArrays>> PostAnalyzedArrays(AnalyzedArrays analyzedArray)
         {
+
+            if (_context.AnalyzedArrays.Any(arr => arr.ArrayComposition.Equals(analyzedArray.ArrayComposition)))
+            {
+                return Content("Array already exists.");
+            }
+
+            analyzedArray = ProcessArray(analyzedArray);
+
+            _context.AnalyzedArrays.Add(analyzedArray);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetAnalyzedArrays", new {id = analyzedArray.Id}, analyzedArray);
+        }
+        private bool AnalyzedArraysExists(int id)
+        {
+            return _context.AnalyzedArrays.Any(e => e.Id == id);
+        }
+
+        /**
+         * Process array method processes the array to display optimal path,
+         * reachable boolean field to false(0) or true(1).
+         */
+        public AnalyzedArrays ProcessArray(AnalyzedArrays analyzedArray)
+        {
             //converts "ArrayComposition" field, which is in a form of e.g. 1,3,2,5 to a List of integers.
             List<int> stringToList = new List<int>(analyzedArray.ArrayComposition.Split(",").Select(x => int.Parse(x)));
 
@@ -103,14 +129,7 @@ namespace DanskeWebApp.Controllers
                 analyzedArray.OptimalPath = "n/a";
             }
 
-            _context.AnalyzedArrays.Add(analyzedArray);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetAnalyzedArrays", new {id = analyzedArray.Id}, analyzedArray);
-        }
-        private bool AnalyzedArraysExists(int id)
-        {
-            return _context.AnalyzedArrays.Any(e => e.Id == id);
+            return analyzedArray;
         }
 
 
